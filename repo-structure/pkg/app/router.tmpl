@@ -1,0 +1,26 @@
+package app
+
+import (
+	"encoding/json"
+	"github.com/kosha/{{.ConnectorName}}-connector/pkg/httpclient"
+	"github.com/kosha/{{.ConnectorName}}-connector/pkg/models"
+	"net/http"
+    {{ "errors" }}
+)
+
+func (a *App) listConnectorSpecification(w http.ResponseWriter, r *http.Request) {
+	//Allow CORS here By * or specific origin
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "*")
+
+	respondWithJSON(w, http.StatusOK, map[string]string{
+        {{if eq .Auth.Type "Basic Authentication"}}
+		"USERNAME":    "{{.ConnectorName}} Username",
+		"PASSWORD":    "{{.ConnectorName}} Password",
+		"DOMAIN_NAME": "{{.ConnectorName}} Domain Name",
+        {{else}}
+        return errors.New("Invalid Auth Type Provided")
+        {{end}}
+	})
+}
