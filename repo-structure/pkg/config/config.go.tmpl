@@ -1,0 +1,46 @@
+package config
+
+type Config struct {
+    {{if eq .Auth.Type "Basic Authentication"}}
+    username   string `json:"username,omitempty"`
+	password   string `json:"password,omitempty"`
+    {{else if eq .Auth.Type "Custom"}}
+    {{- range .Auth.Spec}}
+    {{ . | RemoveUnderscores }} string `json:"{{.}},omitempty"`
+    {{- end}}
+    {{end}}
+}
+
+func Get() *Config {
+    conf := &Config{}
+
+    {{if eq .Auth.Type "Basic Authentication"}}
+    flag.StringVar(&conf.username, "username", os.Getenv("USERNAME"), "{{ .ConnectorName }} Username")
+	flag.StringVar(&conf.password, "password", os.Getenv("PASSWORD"), "{{ .ConnectorName }} Password")
+    {{else if eq .Auth.Type "Custom"}}
+    {{- range .Auth.Spec}}
+    {{ . | RemoveUnderscores }}
+    flag.StringVar(&conf.{{ . }}, "{{ . }}", os.Getenv("{{ . | ToUpper }}"), "{{ $.ConnectorName }} {{ . | Title }}")
+    {{- end}}
+    {{end}}
+	flag.Parse()
+
+	return conf
+}
+
+{{if eq .Auth.Type "Basic Authentication"}}
+func (c *Config) GetUsername() string {
+	return c.username
+}
+
+func (c *Config) GetPassword() string {
+	return c.password
+}
+
+{{else if eq .Auth.Type "Custom"}}
+{{- range .Auth.Spec}}
+func (c *Config) Get{{ . | Title }}() string {
+    return c.{{ . }}
+}
+{{end}}
+{{end}}

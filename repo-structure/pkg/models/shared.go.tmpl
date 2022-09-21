@@ -1,0 +1,15 @@
+package models
+
+type Specification struct {
+    {{if eq .Auth.Type "Basic Authentication"}}
+    Username   string `json:"username,omitempty"`
+	Password   string `json:"password,omitempty"`
+	DomainName string `json:"domain_name,omitempty"`
+    {{else if eq .Auth.Type "Custom"}}
+    {{- range .Auth.Spec}}
+    {{ . | Title | RemoveUnderscores }} string `json:"{{.}},omitempty"`
+    {{- end}}
+    {{else}}
+    return errors.New("Invalid Auth Type Provided")
+    {{end}}
+}

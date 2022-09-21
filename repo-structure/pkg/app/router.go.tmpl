@@ -1,0 +1,73 @@
+package app
+
+import (
+	"net/http"
+	"encoding/json"
+    _ "errors"
+
+	"github.com/kosha/{{.ConnectorName}}-connector/pkg/models"
+	"github.com/kosha/{{.ConnectorName}}-connector/pkg/httpclient"
+)
+
+func (a *App) listConnectorSpecification(w http.ResponseWriter, r *http.Request) {
+	//Allow CORS here By * or specific origin
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "*")
+
+	respondWithJSON(w, http.StatusOK, map[string]string{
+        {{if eq .Auth.Type "Basic Authentication"}}
+		"USERNAME":    "{{.ConnectorName}} Username",
+		"PASSWORD":    "{{.ConnectorName}} Password",
+		"DOMAIN_NAME": "{{.ConnectorName}} Domain Name",
+		{{else if eq .Auth.Type "Custom"}}
+		{{- range .Auth.Spec}}
+		"{{ . | ToUpper }}": "{{$.ConnectorName}} {{.}}",
+		{{- end}}
+        {{else}}
+        return errors.New("Invalid Auth Type Provided")
+        {{end}}
+	})
+}
+
+func (a *App) testConnectorSpecification(w http.ResponseWriter, r *http.Request) {
+
+	//Allow CORS here By * or specific origin
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "*")
+
+	if (*r).Method == "OPTIONS" {
+		w.WriteHeader(200)
+		return
+	}
+
+	var s models.Specification
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&s); err != nil {
+		a.Log.Errorf("Error parsing json payload", err)
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	defer r.Body.Close()
+	account := httpclient.GetAccount(s.Username, s.Password, r.URL.Query())
+	if account != nil {
+		respondWithJSON(w, http.StatusOK, account)
+	} else {
+		respondWithError(w, http.StatusBadRequest, "Account not verified")
+	}
+}
+
+{{range .Endpoints}} 
+func (a *App) {{.Name}}(w http.ResponseWriter, r *http.Request) {
+	
+	//Allow CORS here By * or specific origin
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "*")
+
+	p := httpclient.{{ .Name | Title }}(a.Cfg.Get(), r.URL.Query())
+
+	respondWithJSON(w, http.StatusOK, p)
+}
+{{end}}

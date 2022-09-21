@@ -1,3 +1,56 @@
 {
-    "connector_name": "test"
+    "connector_name": "test",
+    "prometheus": {
+        "enabled": "false"
+    },
+    "auth": {
+        "type": "Basic Authentication",
+        "domain": "https://cisco36.teamwork.com",
+        "me_endpoint":  {
+            "path": "/account.json",
+            "method": "POST"
+        }
+    },
+    "endpoints" : [
+        {
+            "name": "getAllProjects",
+            "description": "Get All Projects",
+            "api_path": "/projects/api/v3/projects.json",
+            "method": "GET",
+            "kosha_path": "/projects",
+            "query_parameters": [
+                "page"
+            ],
+            "enableAllParameters": true,
+            "tag": "projects"
+        },
+        {
+            "name": "getSingleProject",
+            "description": "List single project based on project ID",
+            "api_path": "/projects/api/v3/projects/{id}.json",
+            "method": "GET",
+            "kosha_path": "/projects/{id}",
+            "path_parameters": [
+                "id"
+            ],
+            "enableAllParameters": true,
+            "tag": "projects"
+        },
+        {
+            "name": "createProject",
+            "description": "Create single project in the system",
+            "api_path": "/projects.json",
+            "method": "POST",
+            "body": {
+                "field_name": "",
+                "description": "",
+                "people": 0,
+                "companyId": 0,
+                "use-time": true
+            },
+            "kosha_path": "/projects",
+            "enableAllParameters": true,
+            "tag": "projects"
+        }
+    ]
 }

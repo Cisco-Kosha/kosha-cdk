@@ -1,0 +1,86 @@
+package main
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/kosha/{{.ConnectorName}}-connector/pkg/app"
+	"github.com/kosha/{{.ConnectorName}}-connector/pkg/logger"
+)
+var (
+	log  = logger.New("app", "{{.ConnectorName}}-connector")
+	port = 8015
+)
+{{if eq .Prometheus.Enabled "true"}}
+var totalRequests = prometheus.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "http_requests_total",
+		Help: "Number of get requests.",
+	},
+	[]string{"path"},
+)
+
+var responseStatus = prometheus.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "response_status",
+		Help: "Status of HTTP response",
+	},
+	[]string{"status"},
+)
+
+var httpDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	Name: "http_response_time_seconds",
+	Help: "Duration of HTTP requests.",
+}, []string{"path"})
+
+func prometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		route := mux.CurrentRoute(r)
+		path, _ := route.GetPathTemplate()
+
+		timer := prometheus.NewTimer(httpDuration.WithLabelValues(path))
+		rw := NewResponseWriter(w)
+		next.ServeHTTP(rw, r)
+
+		statusCode := rw.statusCode
+
+		responseStatus.WithLabelValues(strconv.Itoa(statusCode)).Inc()
+		totalRequests.WithLabelValues(path).Inc()
+
+		timer.ObserveDuration()
+	})
+}
+
+func init() {
+	prometheus.Register(totalRequests)
+	prometheus.Register(responseStatus)
+	prometheus.Register(httpDuration)
+}
+{{end}}
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func NewResponseWriter(w http.ResponseWriter) *responseWriter {
+	return &responseWriter{w, http.StatusOK}
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func main() {
+
+	a := app.App{}
+	a.Initialize(log)
+	{{if eq .Prometheus.Enabled "true"}}
+	a.Router.Use(prometheusMiddleware)
+
+	// Prometheus metrics endpoint
+	a.Router.Path("/metrics").Handler(promhttp.Handler())
+	{{end}}
+	log.Infof("Running {{.ConnectorName}}-connector on port %d", port)
+	a.Run(fmt.Sprintf(":%d", port))
+}
