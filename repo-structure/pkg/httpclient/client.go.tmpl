@@ -3,6 +3,7 @@ package httpclient
 import (
 	{{if eq .Auth.Type "Basic Authentication"}}
 	"encoding/base64"
+	"bytes"
 	{{end}}
 	"io/ioutil"
 	"net/http"
@@ -36,7 +37,7 @@ func makeHttpReq(username string, password string, req *http.Request, params url
 	return bodyBytes
 }
 
-{{if .Auth.MeEndpoint }} 
+{{if eq .Auth.Type "Basic Authentication"}}
 func GetAccount(username string, password string, params url.Values) interface{} {
 	req, err := http.NewRequest("{{ .Auth.MeEndpoint.Method }}", "{{ .Auth.Domain }}"+"{{ .Auth.MeEndpoint.Path }}", nil)
 	if err != nil {
@@ -48,14 +49,31 @@ func GetAccount(username string, password string, params url.Values) interface{}
 }
 {{end}}
 
-{{range .Endpoints}} 
+{{if eq .Auth.Type "Basic Authentication"}}
+{{range .Endpoints}}
+{{if and (or (eq .Method "POST") (eq .Method "PUT")) (.ApiPath | isPathParam)}} 
+func {{ .Name | Title }}(id string, username string, password string, body []byte, params url.Values) (string, error) {
+{{else if or (eq .Method "POST") (eq .Method "PUT")}}
+func {{ .Name | Title }}(username string, password string, body []byte, params url.Values) (string, error) {
+{{else if and (or (eq .Method "GET") (eq .Method "DELETE")) (.ApiPath | isPathParam)}}
+func {{ .Name | Title }}(id string, username string, password string, params url.Values) (string, error) {
+{{else if eq .Method "GET" }}
 func {{ .Name | Title }}(username string, password string, params url.Values) (string, error) {
+{{end}}
+	{{if and (or (eq .Method "POST") (eq .Method "PUT")) (.ApiPath | isPathParam)}} 
+	req, err := http.NewRequest("{{ .Method }}", "{{ $.Auth.Domain }}"+"{{ .ApiPath | LeadingPath }}"+id+"{{ .ApiPath | TrailingPath }}", bytes.NewReader(body))
+	{{else if or (eq .Method "POST") (eq .Method "PUT")}}
+	req, err := http.NewRequest("{{ .Method }}", "{{ $.Auth.Domain }}"+"{{ .ApiPath }}", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	{{else if and (or (eq .Method "GET") (eq .Method "DELETE")) (.ApiPath | isPathParam)}}
+	req, err := http.NewRequest("{{ .Method }}", "{{ $.Auth.Domain }}"+"{{ .ApiPath | LeadingPath }}"+id+"{{ .ApiPath | TrailingPath }}", nil)
+	{{else}}
 	req, err := http.NewRequest("{{ .Method }}", "{{ $.Auth.Domain }}"+"{{ .ApiPath }}", nil)
+	{{end}}
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-
 	return string(makeHttpReq(username, password, req, params)), nil
 }
+{{end}}
 {{end}}

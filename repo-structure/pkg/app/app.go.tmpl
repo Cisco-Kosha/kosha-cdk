@@ -5,12 +5,14 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/kosha/{{.ConnectorName}}-connector/pkg/config"
 	"github.com/kosha/{{.ConnectorName}}-connector/pkg/logger"
 )
 
 type App struct {
 	Router *mux.Router
 	Log    logger.Logger
+	Cfg    *config.Config
 }
 
 func router() *mux.Router {
@@ -21,6 +23,9 @@ func router() *mux.Router {
 // Initialize creates the necessary scaffolding of the app
 func (a *App) Initialize(log logger.Logger) {
 
+	cfg := config.Get()
+
+	a.Cfg = cfg
 	a.Log = log
 
 	a.Router = router()

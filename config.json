@@ -30,9 +30,6 @@
             "api_path": "/projects/api/v3/projects/{id}.json",
             "method": "GET",
             "kosha_path": "/projects/{id}",
-            "path_parameters": [
-                "id"
-            ],
             "enableAllParameters": true,
             "tag": "projects"
         },

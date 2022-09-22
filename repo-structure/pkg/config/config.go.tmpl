@@ -1,9 +1,14 @@
 package config
 
+import (
+	"flag"
+	"os"
+)
+
 type Config struct {
     {{if eq .Auth.Type "Basic Authentication"}}
-    username   string `json:"username,omitempty"`
-	password   string `json:"password,omitempty"`
+    username   string
+	password   string
     {{else if eq .Auth.Type "Custom"}}
     {{- range .Auth.Spec}}
     {{ . | RemoveUnderscores }} string `json:"{{.}},omitempty"`

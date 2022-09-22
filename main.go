@@ -24,10 +24,10 @@ type Config struct {
 }
 
 type Auth struct {
-	Type       string   `json:"type,omitempty"`
-	Domain     string   `json:"domain,omitempty"`
-	Spec       []string `json:"spec,omitempty"`
-	MeEndpoint string   `json:"me_endpoint,omitempty"`
+	Type       string     `json:"type,omitempty"`
+	Domain     string     `json:"domain,omitempty"`
+	Spec       []string   `json:"spec,omitempty"`
+	MeEndpoint MeEndpoint `json:"me_endpoint,omitempty"`
 }
 
 type MeEndpoint struct {
@@ -63,47 +63,26 @@ func copyFile(source_path string, dest_path string) {
 	}
 }
 
+func leadingPath(s string) string {
+	splitted := strings.Split(s, "{")
+	return splitted[0]
+}
+
+func trailingPath(path string) string {
+	splitted := strings.Split(path, "}")
+	return splitted[1]
+}
+
+func isPathParam(path string) bool {
+	return strings.Contains(path, "{")
+}
+
 func removeUnderscores(s string) string {
 	var fragments []string
 	for _, frag := range strings.Split(s, "_") {
 		fragments = append(fragments, strings.Title(frag))
 	}
 	return strings.Join(fragments, "")
-}
-
-func insertPathParameters(path string) {
-	// r := regexp.MustCompile(`\{(.*?)\}`)
-	// matches := r.FindAllString(path, -1)
-	// for _, match := range matches {
-	// 	match := strings.Trim(match, "{")
-	// 	trimmed := strings.Trim(match, "}")
-	// 	re := regexp.MustCompile(`\{` + trimmed + `\}`)
-	// 	path = re.ReplaceAllString(path, vars[trimmed])
-	// }
-	// fmt.Println(path)
-
-	r := regexp.MustCompile(`\{(.*?)\}`)
-	matches := r.FindAllString(path, -1)
-
-	for _, match := range matches {
-		m := regexp.MustCompile(match)
-		i := m.FindStringIndex(path)
-		fmt.Println(i)
-	}
-
-	//Note: return a list with each substring
-	//before match
-	//match replaced with
-
-	//note to self: just do id
-	//split path into "pre-id" and "post-id"
-	//then return a list of strings
-	//make it so it's "pre_id" + id + "post_id"
-
-	//maybe seperate function for pre_id
-	//seperate function for post id to make it easy to do
-
-	//{{pre_id function}} + id + {{post_id_function}}
 }
 
 func populateTemplateFiles(source_dir string, dest_dir string, config *Config) {
@@ -115,7 +94,10 @@ func populateTemplateFiles(source_dir string, dest_dir string, config *Config) {
 	funcMap := template.FuncMap{
 		"ToUpper":           strings.ToUpper,
 		"Title":             strings.Title,
+		"LeadingPath":       leadingPath,
 		"RemoveUnderscores": removeUnderscores,
+		"TrailingPath":      trailingPath,
+		"isPathParam":       isPathParam,
 	}
 
 	err := filepath.Walk("./"+source_dir, func(path string, info os.FileInfo, err error) error {
@@ -131,8 +113,14 @@ func populateTemplateFiles(source_dir string, dest_dir string, config *Config) {
 				re = regexp.MustCompile(source_dir + "\\s*(.*?)\\s*.tmpl")
 				fileBase = re.FindStringSubmatch(path)[1]
 				//Read in file and execute template
-				buf, _ := ioutil.ReadFile(path)
-				tmpl, _ := template.New("connectorFiles").Funcs(funcMap).Parse(string(buf))
+				buf, err := ioutil.ReadFile(path)
+				if err != nil {
+					return err
+				}
+				tmpl, err := template.New("connectorFiles").Funcs(funcMap).Parse(string(buf))
+				if err != nil {
+					return err
+				}
 
 				//Generate target file
 				targetFile := filepath.Join(dest_dir, fileBase)
@@ -143,7 +131,10 @@ func populateTemplateFiles(source_dir string, dest_dir string, config *Config) {
 
 				//Write to target file
 				w := bufio.NewWriter(f)
-				tmpl.Execute(w, config)
+				err = tmpl.Execute(w, config)
+				if err != nil {
+					return err
+				}
 				w.Flush()
 			} else {
 				//Not a template file -- copy as is
@@ -166,5 +157,5 @@ func main() {
 	json.Unmarshal(configFile, &config)
 	destination_dir := config.ConnectorName + "-connector"
 	populateTemplateFiles("repo-structure", destination_dir, &config)
-	// insertPathParameters("/projects/api/{version}/projects/{id}.json")
+	// fmt.Println(getPostIdString("/projects/{id}.json"))
 }

@@ -3,7 +3,14 @@ package app
 import (
 	"net/http"
 	"encoding/json"
+	"io/ioutil"
     _ "errors"
+
+	{{$hasPathParameters := false}}
+	{{range .Endpoints}}{{if .ApiPath | isPathParam}}{{$hasPathParameters = true}}{{end}}{{end}}
+	{{if $hasPathParameters}}
+	"github.com/gorilla/mux"
+	{{end}}
 
 	"github.com/kosha/{{.ConnectorName}}-connector/pkg/models"
 	"github.com/kosha/{{.ConnectorName}}-connector/pkg/httpclient"
@@ -19,13 +26,10 @@ func (a *App) listConnectorSpecification(w http.ResponseWriter, r *http.Request)
         {{if eq .Auth.Type "Basic Authentication"}}
 		"USERNAME":    "{{.ConnectorName}} Username",
 		"PASSWORD":    "{{.ConnectorName}} Password",
-		"DOMAIN_NAME": "{{.ConnectorName}} Domain Name",
 		{{else if eq .Auth.Type "Custom"}}
 		{{- range .Auth.Spec}}
 		"{{ . | ToUpper }}": "{{$.ConnectorName}} {{.}}",
 		{{- end}}
-        {{else}}
-        return errors.New("Invalid Auth Type Provided")
         {{end}}
 	})
 }
@@ -50,24 +54,51 @@ func (a *App) testConnectorSpecification(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer r.Body.Close()
+
+	{{if eq .Auth.Type "Basic Authentication"}}
 	account := httpclient.GetAccount(s.Username, s.Password, r.URL.Query())
 	if account != nil {
 		respondWithJSON(w, http.StatusOK, account)
 	} else {
 		respondWithError(w, http.StatusBadRequest, "Account not verified")
 	}
+	{{end}}
 }
 
 {{range .Endpoints}} 
 func (a *App) {{.Name}}(w http.ResponseWriter, r *http.Request) {
-	
 	//Allow CORS here By * or specific origin
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "*")
 
-	p := httpclient.{{ .Name | Title }}(a.Cfg.Get(), r.URL.Query())
-
-	respondWithJSON(w, http.StatusOK, p)
+	{{if eq $.Auth.Type "Basic Authentication"}}
+	{{if .ApiPath | isPathParam}}
+	vars := mux.Vars(r)
+	id := vars["id"]
+	{{end}}
+	{{if or (eq .Method "POST") (eq .Method "PUT")}}
+	var bodyBytes []byte
+	if r.Body != nil {
+		bodyBytes, _ = ioutil.ReadAll(r.Body)
+	} else {
+		respondWithError(w, http.StatusBadRequest, "Empty Body")
+	}
+	{{end}}
+	{{if and (or (eq .Method "POST") (eq .Method "PUT")) (.ApiPath | isPathParam)}} 
+	res, err := httpclient.{{ .Name | Title }}(id, a.Cfg.GetUsername(), a.Cfg.GetPassword(), bodyBytes, r.URL.Query())
+	{{else if or (eq .Method "POST") (eq .Method "PUT")}} 
+	res, err := httpclient.{{ .Name | Title }}(a.Cfg.GetUsername(), a.Cfg.GetPassword(), bodyBytes, r.URL.Query())
+	{{else if and (or (eq .Method "GET") (eq .Method "DELETE")) (.ApiPath | isPathParam)}}
+	res, err := httpclient.{{ .Name | Title }}(id, a.Cfg.GetUsername(), a.Cfg.GetPassword(), r.URL.Query())
+	{{else if or (eq .Method "GET") (eq .Method "DELETE")}}
+	res, err := httpclient.{{ .Name | Title }}(a.Cfg.GetUsername(), a.Cfg.GetPassword(), r.URL.Query())
+	{{end}}
+	if err != nil {
+		a.Log.Errorf("Error in {{ .Name }}", err)
+		respondWithError(w, http.StatusBadRequest, err.Error())
+	}
+	respondWithJSON(w, http.StatusOK, res)
+	{{end}}
 }
 {{end}}

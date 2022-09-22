@@ -5,8 +5,9 @@ func (a *App) initializeRoutes() {
 
 	// specification routes
 	a.Router.HandleFunc(apiV1+"/specification/list", a.listConnectorSpecification).Methods("GET", "OPTIONS")
-	{{range .Endpoints}} {{if eq .Name "account"}} 
-	a.Router.HandleFunc(apiV1+"/specification/test", a.testConnectorSpecification).Methods("POST", "OPTIONS")
+	a.Router.HandleFunc(apiV1+"/specification/test", a.testConnectorSpecification).Methods("{{ .Auth.MeEndpoint.Method }}", "OPTIONS")
+
+	{{range .Endpoints}} 
+	a.Router.HandleFunc(apiV1+"{{ .KoshaPath }}", a.{{ .Name }}).Methods("{{ .Method }}", "OPTIONS")
 	{{end}}
-    {{end}}
 }

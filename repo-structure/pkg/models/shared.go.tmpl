@@ -9,7 +9,5 @@ type Specification struct {
     {{- range .Auth.Spec}}
     {{ . | Title | RemoveUnderscores }} string `json:"{{.}},omitempty"`
     {{- end}}
-    {{else}}
-    return errors.New("Invalid Auth Type Provided")
     {{end}}
 }
