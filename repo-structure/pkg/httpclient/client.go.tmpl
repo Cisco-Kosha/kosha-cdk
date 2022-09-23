@@ -12,17 +12,17 @@ import (
 	// "strconv"
 )
 
-{{if eq .Auth.Type "Basic Authentication"}}
+{{- if eq .Auth.Type "Basic Authentication"}}
 func basicAuth(username string, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
-{{end}}
+{{- end}}
 
 func makeHttpReq(username string, password string, req *http.Request, params url.Values) []byte {
-	{{if eq .Auth.Type "Basic Authentication"}}
+	{{- if eq .Auth.Type "Basic Authentication"}}
 	req.Header.Add("Authorization", "Basic "+basicAuth(username, password))
-	{{end}}
+	{{- end}}
 	req.URL.RawQuery = params.Encode()
 	client := &http.Client{}
 
@@ -47,29 +47,29 @@ func GetAccount(username string, password string, params url.Values) interface{}
 	res := makeHttpReq(username, password, req, params)
 	return res
 }
-{{end}}
+{{- end}}
 
 {{if eq .Auth.Type "Basic Authentication"}}
 {{range .Endpoints}}
-{{if and (or (eq .Method "POST") (eq .Method "PUT")) (.ApiPath | isPathParam)}} 
+{{- if and (or (eq .Method "POST") (eq .Method "PUT")) (.ApiPath | isPathParam)}} 
 func {{ .Name | Title }}(id string, username string, password string, body []byte, params url.Values) (string, error) {
-{{else if or (eq .Method "POST") (eq .Method "PUT")}}
+{{- else if or (eq .Method "POST") (eq .Method "PUT")}}
 func {{ .Name | Title }}(username string, password string, body []byte, params url.Values) (string, error) {
-{{else if and (or (eq .Method "GET") (eq .Method "DELETE")) (.ApiPath | isPathParam)}}
+{{- else if and (or (eq .Method "GET") (eq .Method "DELETE")) (.ApiPath | isPathParam)}}
 func {{ .Name | Title }}(id string, username string, password string, params url.Values) (string, error) {
-{{else if eq .Method "GET" }}
+{{- else if eq .Method "GET" }}
 func {{ .Name | Title }}(username string, password string, params url.Values) (string, error) {
-{{end}}
-	{{if and (or (eq .Method "POST") (eq .Method "PUT")) (.ApiPath | isPathParam)}} 
+{{- end}}
+	{{- if and (or (eq .Method "POST") (eq .Method "PUT")) (.ApiPath | isPathParam)}} 
 	req, err := http.NewRequest("{{ .Method }}", "{{ $.Auth.Domain }}"+"{{ .ApiPath | LeadingPath }}"+id+"{{ .ApiPath | TrailingPath }}", bytes.NewReader(body))
-	{{else if or (eq .Method "POST") (eq .Method "PUT")}}
+	{{- else if or (eq .Method "POST") (eq .Method "PUT")}}
 	req, err := http.NewRequest("{{ .Method }}", "{{ $.Auth.Domain }}"+"{{ .ApiPath }}", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	{{else if and (or (eq .Method "GET") (eq .Method "DELETE")) (.ApiPath | isPathParam)}}
+	{{- else if and (or (eq .Method "GET") (eq .Method "DELETE")) (.ApiPath | isPathParam)}}
 	req, err := http.NewRequest("{{ .Method }}", "{{ $.Auth.Domain }}"+"{{ .ApiPath | LeadingPath }}"+id+"{{ .ApiPath | TrailingPath }}", nil)
-	{{else}}
+	{{- else}}
 	req, err := http.NewRequest("{{ .Method }}", "{{ $.Auth.Domain }}"+"{{ .ApiPath }}", nil)
-	{{end}}
+	{{- end}}
 	if err != nil {
 		return "", err
 	}

@@ -9,5 +9,5 @@ func (a *App) initializeRoutes() {
 
 	{{range .Endpoints}} 
 	a.Router.HandleFunc(apiV1+"{{ .KoshaPath }}", a.{{ .Name }}).Methods("{{ .Method }}", "OPTIONS")
-	{{end}}
+	{{- end}}
 }

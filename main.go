@@ -93,6 +93,7 @@ func populateTemplateFiles(source_dir string, dest_dir string, config *Config) {
 	//Add custom template functions
 	funcMap := template.FuncMap{
 		"ToUpper":           strings.ToUpper,
+		"ToLower":           strings.ToLower,
 		"Title":             strings.Title,
 		"LeadingPath":       leadingPath,
 		"RemoveUnderscores": removeUnderscores,
