@@ -47,7 +47,7 @@ type Endpoints struct {
 	KoshaPath           string      `json:"kosha_path,omitempty"`
 	QueryParameters     []string    `json:"query_parameters,omitempty"`
 	PathParameters      []string    `json:"path_parameters,omitempty"`
-	EnableAllParameters bool        `json:"enableAllParameters,omitempty"`
+	EnableAllParameters bool        `json:"enable_all_parameters,omitempty"`
 	Tag                 string      `json:"tag,omitempty"`
 	Body                interface{} `json:"body,omitempty"`
 }
