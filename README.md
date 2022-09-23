@@ -95,7 +95,7 @@ A new Kosha connector is defined with a config.json file with the following fiel
             "query_parameters": [
                 ""    
             ],
-            "enableAllParameters": true,
+            "enable_all_parameters": true,
             "tag": ""
         }
     ]
