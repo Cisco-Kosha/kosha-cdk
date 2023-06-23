@@ -1,8 +1,26 @@
 name: Testing for Passthrough Connectors
 run-name: ${{ github.event_name }} triggered test 🚀
 on: [push]
+
 jobs:
-  Explore-GitHub-Actions:
+  Json-Lint:
     runs-on: ubuntu-latest
     steps:
-      - run: go test ./... -v
+#       - name: Install jsonlint
+#         run: npm install jsonlint -g
+      - name: Checkout repo
+        uses: actions/checkout@v3.5.3
+#       - name: Validate JSON
+#         run: jsonlint openapi.json
+      - name: Validate JSON
+        uses: GrantBirki/json-yaml-validate@v1.4.0
+       
+  Validate-Api-Spec:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install swagger-cli
+        run: npm install -g @apidevtools/swagger-cli
+      - name: Checkout repo
+        uses: actions/checkout@v3.5.3      
+      - name: Run validation command
+        run: swagger-cli validate openapi.json
