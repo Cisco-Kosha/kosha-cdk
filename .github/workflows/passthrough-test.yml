@@ -1,0 +1,8 @@
+name: Testing for Passthrough Connectors
+run-name: ${{ github.event_name }} triggered test 🚀
+on: [push]
+jobs:
+  Explore-GitHub-Actions:
+    runs-on: ubuntu-latest
+    steps:
+      - run: go test ./... -v
